@@ -1,0 +1,21 @@
+package pkg/name/gtest test failed
+Coverage: unset
+Cost: 0.011 second
+Pass: 0, Fail: 1, Skip: 0
+Failed cause:
+Tests:
+	+FAIL	TestOne	Spend time=0.000 sencond	Output:
+panic: error info [recovered]
+	panic: error info
+
+goroutine 6 [running]:
+testing.tRunner.func1(0xc420074750)
+	/go/src/testing/testing.go:622 +0x29d
+panic(0x11714e0, 0xc4200152e0)
+	/go/src/runtime/panic.go:489 +0x2cf
+pkg/name/gtest.TestOne(0xc420074750)
+	/go/src/pkg/name/parse_test.go:15 +0x64
+testing.tRunner(0xc420074750, 0x11b72f0)
+	/go/src/testing/testing.go:657 +0x96
+created by testing.(*T).Run
+	/go/src/testing/testing.go:697 +0x2ca

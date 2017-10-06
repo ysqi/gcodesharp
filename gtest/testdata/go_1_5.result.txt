@@ -1,0 +1,8 @@
+package package/name test passed
+Coverage: unset
+Cost: 0.050 second
+Pass: 2, Fail: 0, Skip: 0
+Failed cause:
+Tests:
+	+PASS	TestOne	Spend time=0.020 sencond	Output:<nil>
+	+PASS	TestTwo	Spend time=0.030 sencond	Output:<nil>

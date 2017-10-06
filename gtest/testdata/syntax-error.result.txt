@@ -1,0 +1,42 @@
+package package/name/failing1 test failed
+Coverage: unset
+Cost: 0.000 second
+Pass: 0, Fail: 0, Skip: 0
+Failed cause:failing1/failing_test.go:15: undefined: x
+build failed
+Tests:
+
+package package/name/failing2 test failed
+Coverage: unset
+Cost: 0.000 second
+Pass: 0, Fail: 0, Skip: 0
+Failed cause:failing2/another_failing_test.go:20: undefined: y
+build failed
+Tests:
+
+package package/name/setupfailing1 test failed
+Coverage: unset
+Cost: 0.000 second
+Pass: 0, Fail: 0, Skip: 0
+Failed cause:setupfailing1/failing_test.go:4: cannot find package "other/package" in any of:
+	/path/vendor (vendor tree)
+	/path/go/root (from $GOROOT)
+	/path/go/path (from $GOPATH)
+setup failed
+Tests:
+
+package package/name/passing1 test passed
+Coverage: unset
+Cost: 0.100 second
+Pass: 1, Fail: 0, Skip: 0
+Failed cause:
+Tests:
+	+PASS	TestA	Spend time=0.100 sencond	Output:<nil>
+
+package package/name/passing2 test passed
+Coverage: unset
+Cost: 0.100 second
+Pass: 1, Fail: 0, Skip: 0
+Failed cause:
+Tests:
+	+PASS	TestB	Spend time=0.100 sencond	Output:<nil>

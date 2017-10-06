@@ -1,0 +1,16 @@
+package package1/foo test passed
+Coverage: 10.00%
+Cost: 0.400 second
+Pass: 2, Fail: 0, Skip: 0
+Failed cause:
+Tests:
+	+PASS	TestA	Spend time=0.100 sencond	Output:<nil>
+	+PASS	TestB	Spend time=0.300 sencond	Output:<nil>
+
+package package2/bar test passed
+Coverage: 99.80%
+Cost: 4.200 second
+Pass: 1, Fail: 0, Skip: 0
+Failed cause:
+Tests:
+	+PASS	TestC	Spend time=4.200 sencond	Output:<nil>

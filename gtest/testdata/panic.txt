@@ -1,0 +1,19 @@
+=== RUN   TestOne
+--- FAIL: TestOne (0.00s)
+panic: error info [recovered]
+	panic: error info
+
+goroutine 6 [running]:
+testing.tRunner.func1(0xc420074750)
+	/go/src/testing/testing.go:622 +0x29d
+panic(0x11714e0, 0xc4200152e0)
+	/go/src/runtime/panic.go:489 +0x2cf
+pkg/name/gtest.TestOne(0xc420074750)
+	/go/src/pkg/name/parse_test.go:15 +0x64
+testing.tRunner(0xc420074750, 0x11b72f0)
+	/go/src/testing/testing.go:657 +0x96
+created by testing.(*T).Run
+	/go/src/testing/testing.go:697 +0x2ca
+exit status 2
+FAIL	pkg/name/gtest	0.011s
+Error: Tests failed.

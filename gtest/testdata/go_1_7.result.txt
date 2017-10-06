@@ -1,0 +1,30 @@
+package package/name test failed
+Coverage: unset
+Cost: 0.050 second
+Pass: 13, Fail: 3, Skip: 2
+Failed cause:
+Tests:
+	+PASS	TestOne	Spend time=0.010 sencond	Output:<nil>
+	+PASS	TestOne/Child	Spend time=0.020 sencond	Output:<nil>
+	+PASS	TestOne/Child#01	Spend time=0.030 sencond	Output:<nil>
+	+PASS	TestOne/Child=02	Spend time=0.040 sencond	Output:<nil>
+	+PASS	TestTwo	Spend time=0.010 sencond	Output:<nil>
+	+PASS	TestTwo/Child	Spend time=0.020 sencond	Output:<nil>
+	+PASS	TestTwo/Child#01	Spend time=0.030 sencond	Output:<nil>
+	+PASS	TestTwo/Child=02	Spend time=0.040 sencond	Output:<nil>
+	+PASS	TestThree	Spend time=0.010 sencond	Output:<nil>
+	+PASS	TestThree/a#1	Spend time=0.020 sencond	Output:<nil>
+	+PASS	TestThree/a#1/b#1	Spend time=0.030 sencond	Output:<nil>
+	+PASS	TestThree/a#1/b#1/c#1	Spend time=0.040 sencond	Output:<nil>
+	+FAIL	TestFour	Spend time=0.020 sencond	Output:<nil>
+	+FAIL	TestFour/#00	Spend time=0.000 sencond	Output:
+		example.go:12: Expected abc  OBTAINED:
+			xyz
+		example.go:123: Expected and obtained are different.
+	+SKIP	TestFour/#01	Spend time=0.000 sencond	Output:
+		example.go:1234: Not supported yet.
+	+PASS	TestFour/#02	Spend time=0.000 sencond	Output:<nil>
+	+SKIP	TestFive	Spend time=0.020 sencond	Output:
+	example.go:1392: Not supported yet.
+	+FAIL	TestSix	Spend time=0.000 sencond	Output:
+	example.go:371: This should not fail!

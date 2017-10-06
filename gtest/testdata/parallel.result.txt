@@ -1,0 +1,12 @@
+package github.com/ysqi/gcodereview test passed
+Coverage: unset
+Cost: 0.440 second
+Pass: 2, Fail: 0, Skip: 0
+Failed cause:
+Tests:
+	+PASS	TestDoFoo	Spend time=0.270 sencond	Output:
+	cov_test.go:10: DoFoo log 1
+	cov_test.go:10: DoFoo log 2
+	+PASS	TestDoFoo2	Spend time=0.160 sencond	Output:
+	cov_test.go:21: DoFoo2 log 1
+	cov_test.go:21: DoFoo2 log 2

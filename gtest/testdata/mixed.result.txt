@@ -1,0 +1,21 @@
+package package/name1 test passed
+Coverage: unset
+Cost: 0.160 second
+Pass: 2, Fail: 0, Skip: 0
+Failed cause:
+Tests:
+	+PASS	TestOne	Spend time=0.060 sencond	Output:<nil>
+	+PASS	TestTwo	Spend time=0.100 sencond	Output:<nil>
+
+package package/name2 test failed
+Coverage: unset
+Cost: 0.151 second
+Pass: 1, Fail: 1, Skip: 0
+Failed cause:
+Tests:
+	+FAIL	TestOne	Spend time=0.020 sencond	Output:
+	file_test.go:11: Error message
+	file_test.go:11: Longer
+		error
+		message.
+	+PASS	TestTwo	Spend time=0.130 sencond	Output:<nil>

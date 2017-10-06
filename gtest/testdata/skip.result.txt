@@ -1,0 +1,9 @@
+package package/name test passed
+Coverage: unset
+Cost: 0.150 second
+Pass: 1, Fail: 0, Skip: 1
+Failed cause:
+Tests:
+	+SKIP	TestOne	Spend time=0.020 sencond	Output:
+	file_test.go:11: Skip message
+	+PASS	TestTwo	Spend time=0.130 sencond	Output:<nil>
