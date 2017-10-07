@@ -4,16 +4,11 @@ package gtest
 
 import (
 	"bufio"
-	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"log"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 // Result represents a test result.
@@ -102,87 +97,6 @@ func (pkg *Package) GetByResult(r Result) []*Unit {
 		}
 	}
 	return s
-}
-
-// ExecGoTest run go test command.
-// return the test result info and realtime print info with logger.
-func ExecGoTest(pkgname string) (pkg *Package, err error) {
-	var (
-		stderr bytes.Buffer
-		stdout io.ReadCloser
-	)
-	// TODO: need support more args
-	cmd := exec.Command("go", "test", pkgname, "-cover", "-v", "-timeout", "3s")
-	cmd.Stderr = &stderr
-	stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	scanner := bufio.NewScanner(stdout)
-
-	// need wait for output process compeled.
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	setLastErr := func(err interface{}) {
-		if pkg == nil {
-			return
-		}
-		pkg.Failed = true
-		if len(pkg.Units) == 0 {
-			return
-		}
-		errStr := ""
-		switch v := err.(type) {
-		case error:
-			errStr = v.Error()
-		case string:
-			errStr = v
-		default:
-			errStr = fmt.Sprintf("%v", v)
-		}
-		pkg.Units[len(pkg.Units)-1].Output = errStr
-		pkg.Units[len(pkg.Units)-1].Result = FAIL
-	}
-	defer func() {
-		if err := recover(); err != nil {
-			setLastErr(err)
-		}
-	}()
-	go func() {
-		var pkgs []*Package
-		pkgs, err = parse(scanner, true)
-		if err == nil && len(pkgs) > 0 {
-			pkg = pkgs[0]
-		}
-		wg.Done()
-	}()
-
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	wg.Wait()
-	if err = cmd.Wait(); err != nil {
-		errStr := stderr.String()
-		if pkg == nil {
-			return nil, errors.New("ExecGoTest:" + errStr)
-		}
-		pkg.Failed = true
-		if pkg != nil && regPanic.Match([]byte(errStr)) {
-			// the last test panic error
-			// set error info to last test
-			setLastErr(errStr)
-			pkg.Err = err.Error()
-		} else {
-			if errStr == "" {
-				errStr = err.Error()
-			} else {
-				errStr = appendLine(errStr, err.Error())
-			}
-			pkg.Err = errStr
-		}
-	}
-	return pkg, nil
 }
 
 var (
