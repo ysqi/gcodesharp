@@ -7,15 +7,23 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"os/runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ysqi/gcodesharp/context"
 )
 
 // Report go test report
 type Report struct {
-	Pkgs []*Package
+	Env struct {
+		GoVersion string
+		OS        string
+		Arch      string
+	}
+	Creted   time.Time
+	Packages []*Package
 }
 
 // Config run go test config
@@ -51,7 +59,13 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 		stdout io.ReadCloser
 	)
 	report = &Report{
-		Pkgs: []*Package{},
+		Packages: []*Package{},
+		Env: {
+			GoVersion: runtime.Version(),
+			OS:        runtime.GOOS(),
+			Arch:      runtime.GOARCH(),
+		},
+		Creted: time.Now(),
 	}
 	// TODO: need support more args
 	cmd := exec.Command("go", "test", "-cover", "-v", "-timeout", "3s")
@@ -80,10 +94,10 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	setLastErr := func(err interface{}) {
-		if len(report.Pkgs) == 0 {
+		if len(report.Packages) == 0 {
 			return
 		}
-		pkg := report.Pkgs[len(report.Pkgs)-1]
+		pkg := report.Packages[len(report.Packages)-1]
 		pkg.Failed = true
 		if len(pkg.Units) == 0 {
 			return
@@ -109,7 +123,7 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 		var pkgs []*Package
 		pkgs, err = parse(scanner, true)
 		if err == nil && len(pkgs) > 0 {
-			report.Pkgs = pkgs
+			report.Packages = pkgs
 		}
 		wg.Done()
 	}()
@@ -121,10 +135,10 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	wg.Wait()
 	if err = cmd.Wait(); err != nil {
 		errStr := stderr.String()
-		if len(report.Pkgs) == 0 {
+		if len(report.Packages) == 0 {
 			return nil, errors.New("ExecGoTest:" + errStr)
 		}
-		pkg := report.Pkgs[len(report.Pkgs)-1]
+		pkg := report.Packages[len(report.Packages)-1]
 		pkg.Failed = true
 		if pkg != nil && regPanic.Match([]byte(errStr)) {
 			// the last test panic error
