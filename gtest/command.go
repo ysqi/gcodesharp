@@ -26,32 +26,15 @@ type Report struct {
 
 // Config run go test config
 type Config struct {
-	PackageDirs   []string //need run go test for some dir
+	PackagePaths  []string //need run go test for some dir
 	ContainImport bool     //need run all for child dir
-
-	importpaths []string
-}
-
-// check and find package import path.
-func check(ctx *context.Context, cfg *Config) error {
-	if len(cfg.PackageDirs) == 0 {
-		cfg.PackageDirs = append(cfg.PackageDirs, ".")
-	}
-	for _, dir := range cfg.PackageDirs {
-		importPath, _, err := ctx.FindImportPath(dir)
-		if err != nil {
-			return err
-		}
-		cfg.importpaths = append(cfg.importpaths, importPath)
-	}
-	return nil
 }
 
 // Run go test command.
 // return the test result info and realtime print info with logger.
 func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
-	if err = check(ctx, cfg); err != nil {
-		return nil, err
+	if len(cfg.PackagePaths) == 0 {
+		cfg.PackagePaths = append(cfg.PackagePaths, ".")
 	}
 	report = &Report{
 		Packages: []*Package{},
@@ -63,7 +46,7 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 
 	packagepaths := []string{}
 	// add path
-	for _, p := range cfg.importpaths {
+	for _, p := range cfg.PackagePaths {
 		if cfg.ContainImport {
 			list, err := context.GetPackagePaths(p)
 			if err != nil {

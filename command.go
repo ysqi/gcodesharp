@@ -29,7 +29,7 @@ func init() {
 
 func run(c *cobra.Command, args []string) {
 	cfg := gtest.Config{}
-	cfg.PackageDirs = args
+	cfg.PackagePaths = args
 	cfg.ContainImport = !onlyCurrentDir
 	report, err := gtest.Run(ctx, &cfg)
 	if err != nil {

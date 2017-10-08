@@ -26,12 +26,13 @@ gcodesharp -h
 
 # Get Junit Report
 
-gcodesharp support more one golang project path . default is current dir if not set.
+gcodesharp support more one golang project package path . default is current dir if not set.
 
 ```shell
-gcodesharp --junit=$HOME/tmp/myjunit.xml $GOPATH/src/github.com/ysqi/gcodesharp
+gcodesharp --junit=$HOME/tmp/myjunit.xml github.com/ysqi/gcodesharp github.com/ysqi/com
 ```
 this command will run go test for current dir and all child dir. Is actually equivalent to the following command:
 ```shell
-go test -cover -timeout 30s -v $GOPATH/src/github.com/ysqi/gcodesharp...
+go test -cover -timeout 30s -v github.com/ysqi/gcodesharp... github.com/ysqi/com...
 ```
+`github.com/ysqi/gcodesharp...` mean contains import path prefixed with `github.com/ysqi/gcodesharp`.

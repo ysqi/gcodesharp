@@ -13,9 +13,7 @@ func TestRelTime(t *testing.T) {
 		t.Fatal(err)
 	}
 	report, err := Run(ctx, &Config{
-		PackageDirs: []string{
-			"./testdata",
-		},
+		PackagePaths:  []string{"github.com/ysqi/gcodesharp/gtest/testdata"},
 		ContainImport: false,
 	})
 	if err != nil {
