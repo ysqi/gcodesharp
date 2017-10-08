@@ -73,7 +73,7 @@ func JUnitReportXML(report *Report, noXMLHeader bool, w io.Writer) error {
 			Properties: []JUnitProperty{},
 			TestCases:  []JUnitTestCase{},
 			Failures:   pkg.FailCount(),
-			Timestamp:  report.Creted.UTC().Format("2006-01-02T15:04:05"),
+			Timestamp:  pkg.Runtime.UTC().Format("2006-01-02T15:04:05"), //ISO8601
 		}
 		classname := pkg.Name
 		if idx := strings.LastIndex(classname, "/"); idx > -1 && idx < len(pkg.Name) {

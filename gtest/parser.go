@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Result represents a test result.
@@ -43,8 +44,9 @@ type Unit struct {
 
 // Package is a single package that contains test results
 type Package struct {
-	Name string
-	Cost float32
+	Name    string
+	Cost    float32
+	Runtime time.Time
 	// Coverage package test coverage
 	// TODO: need support with '-coverpkg' arg，the result such like :
 	// 		ok      github.com/ysqi/gcodereview/gtest       0.011s  coverage: 12.5% of statements in fmt
@@ -135,6 +137,7 @@ func parse(scanner *bufio.Scanner, logprint bool) ([]*Package, error) {
 			nextIsPkgError = false
 			return &Package{
 				Name:     name,
+				Runtime:  time.Now(),
 				Coverage: -1,
 			}
 		}
