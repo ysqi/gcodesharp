@@ -178,9 +178,12 @@ func parse(scanner *bufio.Scanner, logprint bool) ([]*Package, error) {
 			} else {
 				pkg = p
 			}
-			// e.g:	FAIL        github.com/ysqi/com/one [build failed]
-			if string(matches[1]) != "ok" {
-				pkg.Failed = true
+
+			status := string(matches[1])
+			if status == "?" && string(matches[4]) == "no test files" {
+				pkg.Failed = false
+			} else {
+				pkg.Failed = status != "ok"
 			}
 			pkg.Cost = mustFloat32(matches[3])
 			if pkg.Failed && len(matches[4]) > 0 {

@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -90,7 +89,6 @@ func JUnitReportXML(report *Report, noXMLHeader bool, w io.Writer) error {
 			ts.Properties = append(ts.Properties, JUnitProperty{"coverage.statements.pct", fmt.Sprintf("%.2f", pkg.Coverage)})
 		}
 		if pkg.Failed {
-			log.Println(pkg.Err)
 			ts.Err = pkg.Err
 		}
 
