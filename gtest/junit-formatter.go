@@ -26,7 +26,7 @@ type JUnitTestSuite struct {
 	Time       float32         `xml:"time,attr"`
 	Name       string          `xml:"name,attr"`
 	Timestamp  string          `xml:"timestamp,attr"`
-	Err        string          `xml:"system-err"`
+	Err        string          `xml:"system-err,omitempty"`
 	Properties []JUnitProperty `xml:"properties>property,omitempty"`
 	TestCases  []JUnitTestCase
 }

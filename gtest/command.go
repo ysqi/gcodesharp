@@ -152,18 +152,18 @@ func run(packagepath string, args []string) (pkg *Package, err error) {
 	if err = cmd.Wait(); err != nil {
 		errStr := stderr.String()
 		pkg.Failed = true
-		if pkg != nil && regPanic.Match([]byte(errStr)) {
-			// the last test panic error
-			// set error info to last test
-			setLastErr(errStr)
+		if pkg != nil {
+			if regPanic.Match([]byte(errStr)) {
+				// the last test panic error
+				// set error info to last test
+				setLastErr(errStr)
+			}
 			errStr = ""
 		}
-		if errStr == "" {
-			errStr = err.Error()
-		} else {
+		if _, ok := err.(*exec.ExitError); !ok {
 			errStr = appendLine(errStr, err.Error())
 		}
-		pkg.Err = errStr
+		pkg.Err = appendLine(pkg.Err, errStr)
 	}
 	return pkg, nil
 }

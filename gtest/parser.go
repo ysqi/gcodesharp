@@ -130,8 +130,7 @@ func parse(scanner *bufio.Scanner, logprint bool) ([]*Package, error) {
 		nextIsPkgError bool
 		// current unit test
 		curUnit *Unit
-		// current package
-		pkg    *Package
+
 		newPkg = func(name string) *Package {
 			nextIsPkgError = false
 			return &Package{
@@ -139,7 +138,10 @@ func parse(scanner *bufio.Scanner, logprint bool) ([]*Package, error) {
 				Coverage: -1,
 			}
 		}
+		// current package
+		pkg = newPkg("")
 	)
+	nextIsPkgError = true
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -203,7 +205,7 @@ func parse(scanner *bufio.Scanner, logprint bool) ([]*Package, error) {
 			pkg.Failed = true
 			continue
 		}
-		if line == "PASS" {
+		if line == "PASS" || line == "testing: warning: no tests to run" {
 			pkg.Failed = false
 			continue
 		}
@@ -218,13 +220,16 @@ func parse(scanner *bufio.Scanner, logprint bool) ([]*Package, error) {
 			pkgs = append(pkgs, pkg)
 			continue
 		}
+
+		if curUnit != nil {
+			curUnit.Output = appendLine(curUnit.Output, line)
+			continue
+		}
+
 		if nextIsPkgError {
 			pkg.Err = appendLine(pkg.Err, line)
 			pkg.Failed = true
 			continue
-		}
-		if curUnit != nil {
-			curUnit.Output = appendLine(curUnit.Output, line)
 		}
 	}
 	return pkgs, nil
