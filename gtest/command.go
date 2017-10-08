@@ -55,10 +55,6 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	if err = check(ctx, cfg); err != nil {
 		return nil, err
 	}
-	var (
-		stderr bytes.Buffer
-		stdout io.ReadCloser
-	)
 	report = &Report{
 		Packages: []*Package{},
 		Creted:   time.Now(),
@@ -67,8 +63,7 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	report.Env.OS = runtime.GOOS
 	report.Env.Arch = runtime.GOARCH
 
-	// TODO: need support more args
-	cmd := exec.Command("go", "test", "-cover", "-v", "-timeout", "3s")
+	packagepaths := []string{}
 	// add path
 	for _, p := range cfg.importpaths {
 		if cfg.ContainImport {
@@ -78,11 +73,33 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 			}
 			// add all child import path to cmd.
 			// note:contains self.
-			cmd.Args = append(cmd.Args, list...)
+			packagepaths = append(packagepaths, list...)
 		} else {
-			cmd.Args = append(cmd.Args, p)
+			packagepaths = append(packagepaths, p)
 		}
 	}
+
+	for _, p := range packagepaths {
+		args := []string{"-cover", "-v", "-timeout", "3s"}
+		pkg, err := run(p, args)
+		if err != nil {
+			return nil, err
+		}
+		report.Packages = append(report.Packages, pkg)
+	}
+
+	return report, nil
+}
+
+func run(packagepath string, args []string) (pkg *Package, err error) {
+	var (
+		stderr bytes.Buffer
+		stdout io.ReadCloser
+	)
+	// TODO: need support more args
+	cmd := exec.Command("go", "test", packagepath)
+	cmd.Args = append(cmd.Args, args...)
+
 	cmd.Stderr = &stderr
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
@@ -90,14 +107,13 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	}
 	scanner := bufio.NewScanner(stdout)
 
+	pkg = &Package{
+		Name: packagepath,
+	}
 	// need wait for output process compeled.
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	setLastErr := func(err interface{}) {
-		if len(report.Packages) == 0 {
-			return
-		}
-		pkg := report.Packages[len(report.Packages)-1]
 		pkg.Failed = true
 		if len(pkg.Units) == 0 {
 			return
@@ -123,7 +139,7 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 		var pkgs []*Package
 		pkgs, err = parse(scanner, true)
 		if err == nil && len(pkgs) > 0 {
-			report.Packages = pkgs
+			pkg = pkgs[0]
 		}
 		wg.Done()
 	}()
@@ -135,10 +151,6 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	wg.Wait()
 	if err = cmd.Wait(); err != nil {
 		errStr := stderr.String()
-		if len(report.Packages) == 0 {
-			return nil, errors.New("ExecGoTest:" + errStr)
-		}
-		pkg := report.Packages[len(report.Packages)-1]
 		pkg.Failed = true
 		if pkg != nil && regPanic.Match([]byte(errStr)) {
 			// the last test panic error
@@ -153,7 +165,7 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 		}
 		pkg.Err = errStr
 	}
-	return report, nil
+	return pkg, nil
 }
 
 // getPackageList get all import path prefixed with input
@@ -177,6 +189,10 @@ func getPackageList(pkgpath string) ([]string, error) {
 		return list, errors.New(outputStr)
 	}
 	for _, line := range strings.Split(outputStr, "\n") {
+		// ignore vendor path
+		if strings.Contains(line, "/vendor/") {
+			continue
+		}
 		list = append(list, line)
 	}
 	return list, nil

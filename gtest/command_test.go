@@ -52,10 +52,10 @@ func TestRelTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(report.Pkgs) != 1 {
+	if len(report.Packages) != 1 {
 		t.Fatal("want one pakcage rest report,but zero")
 	}
-	pkg := report.Pkgs[0]
+	pkg := report.Packages[0]
 	for _, u := range pkg.Units {
 		t.Logf("%+v", u)
 	}
