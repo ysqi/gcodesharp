@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/ysqi/gcodesharp/gtest"
@@ -16,24 +17,46 @@ This application is a tool to generate the report to quickly review the golang c
 	Run: run,
 }
 
-func init() {
-	cmd.Flags().StringP("outputdir", "o", "", `Place output files from profiling in the specified directory,
-by default the directory of application working.`)
+var (
+	junitpath      string // enable save report to xml file
+	onlyCurrentDir bool
+)
 
+func init() {
+	cmd.PersistentFlags().StringVarP(&junitpath, "junit", "j", "", `save go test report to junit xml file`)
+	cmd.PersistentFlags().BoolVarP(&onlyCurrentDir, "onlyself", "", false, `only run go test for current dir not contains child dir`)
 }
 
 func run(c *cobra.Command, args []string) {
-	log.Println("args:", len(args), args)
 	cfg := gtest.Config{}
 	cfg.PackageDirs = args
+	cfg.ContainImport = !onlyCurrentDir
 	report, err := gtest.Run(ctx, &cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(len(report.Pkgs))
-	for _, p := range report.Pkgs {
-		pass, skip, fail := p.PassCount(), p.SkipCount(), p.FailCount()
-		log.Println(len(p.Units), pass, skip, fail)
-		log.Printf("+%v", p)
+	if junitpath != "" {
+		err := saveTestReport(report)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
+}
+
+func saveTestReport(report *gtest.Report) error {
+	f, err := os.Create(junitpath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	err = gtest.JUnitReportXML(report, false, f)
+	// remove the file when error.
+	if err != nil {
+		f.Close()
+		os.Remove(junitpath)
+		return err
+	}
+	return nil
 }

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"os/runtime"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -30,7 +30,8 @@ type Report struct {
 type Config struct {
 	PackageDirs   []string //need run go test for some dir
 	ContainImport bool     //need run all for child dir
-	importpaths   []string
+
+	importpaths []string
 }
 
 // check and find package import path.
@@ -60,13 +61,12 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	)
 	report = &Report{
 		Packages: []*Package{},
-		Env: {
-			GoVersion: runtime.Version(),
-			OS:        runtime.GOOS(),
-			Arch:      runtime.GOARCH(),
-		},
-		Creted: time.Now(),
+		Creted:   time.Now(),
 	}
+	report.Env.GoVersion = runtime.Version()
+	report.Env.OS = runtime.GOOS
+	report.Env.Arch = runtime.GOARCH
+
 	// TODO: need support more args
 	cmd := exec.Command("go", "test", "-cover", "-v", "-timeout", "3s")
 	// add path
