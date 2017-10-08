@@ -4,8 +4,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/spf13/cobra"
+	"github.com/ysqi/gcodesharp/gfmt"
 	"github.com/ysqi/gcodesharp/gtest"
+
+	"github.com/spf13/cobra"
 )
 
 // cmd represents the base command when called without any subcommands
@@ -35,6 +37,12 @@ func run(c *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	gfmtTest, err := gfmtAsTestPart(args)
+	if err != nil {
+		log.Fatal(err)
+	}
+	report.Packages = append(report.Packages, gfmtTest)
+
 	if junitpath != "" {
 		err := saveTestReport(report)
 		if err != nil {
@@ -42,6 +50,34 @@ func run(c *cobra.Command, args []string) {
 		}
 		return
 	}
+}
+
+func gfmtAsTestPart(args []string) (*gtest.Package, error) {
+	cfg := gfmt.Config{
+		PackagePaths:  args,
+		ContainImport: !onlyCurrentDir,
+		PrintLog:      true,
+	}
+	report, err := gfmt.Run(ctx, &cfg)
+	if err != nil {
+		return nil, err
+	}
+	//go fmt as a part of the test result
+	pkg := gtest.Package{
+		Name:     report.GoFmt,
+		Coverage: -1.0,
+		Runtime:  report.Created,
+		Cost:     report.Cost,
+	}
+	for _, f := range report.Files {
+		u := gtest.Unit{Name: f.Name}
+		if f.NeedFmt {
+			u.Result = gtest.FAIL
+			u.Output = f.Diff
+		}
+		pkg.Units = append(pkg.Units, &u)
+	}
+	return &pkg, nil
 }
 
 func saveTestReport(report *gtest.Report) error {

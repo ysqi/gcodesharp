@@ -3,6 +3,7 @@ package gfmt
 import (
 	"bytes"
 	"errors"
+	"log"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -17,6 +18,7 @@ type Report struct {
 	Files   []*File
 	GoFmt   string
 	Created time.Time
+	Cost    float32
 	Env     struct {
 		GoVersion string
 		OS        string
@@ -30,6 +32,7 @@ var gofmtpath string
 type Config struct {
 	PackagePaths  []string //need run go test for some dir
 	ContainImport bool     //need run all for child dir
+	PrintLog      bool
 }
 
 // File need format go file
@@ -81,6 +84,7 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 			return nil, err
 		}
 	}
+	report.Cost = float32(time.Since(report.Created).Seconds())
 	return report, nil
 }
 
@@ -102,7 +106,6 @@ func runGoFmt(files []*File) error {
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Stderr = &stderr
 	cmd.Stdout = &stdout
-
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -117,6 +120,9 @@ func runGoFmt(files []*File) error {
 	// read output add add to diffrent file
 	var file *File
 	for _, line := range strings.Split(stdout.String(), "\n") {
+		if line != "" {
+			log.Println(line)
+		}
 		if matches := regDiffHead.FindSubmatch([]byte(line)); len(matches) == 2 {
 			//add to file diff
 			name := string(matches[1])
@@ -160,7 +166,12 @@ func getGoFiles(packagepath string) (files []string, err error) {
 		if len(arr) <= 3 {
 			continue
 		}
-		files = append(files, arr[3:]...)
+		for _, f := range arr[3:] {
+			if strings.Contains(f, "vendor/") {
+				continue
+			}
+			files = append(files, f)
+		}
 	}
 	return
 }
