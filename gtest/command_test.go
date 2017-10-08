@@ -7,37 +7,6 @@ import (
 	"github.com/ysqi/gcodesharp/context"
 )
 
-func TestPackageList(t *testing.T) {
-	list, err := getPackageList("github.com/ysqi/gcodesharp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !contains(list, "github.com/ysqi/gcodesharp") {
-		t.Fatalf("go list %+v need contains %q", list, "github.com/ysqi/gcodesharp")
-	}
-	if !contains(list, "github.com/ysqi/gcodesharp/gtest") {
-		t.Fatalf("go list %+v need contains %q", list, "github.com/ysqi/gcodesharp/gtest")
-	}
-
-	list1, err := getPackageList("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	list2, err := getPackageList(".")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(list1) != len(list2) {
-		t.Fatal("get diffrent result")
-	}
-	for i := 0; i < len(list1); i++ {
-		if list1[i] != list2[i] {
-			t.Fatal("get diffrent result")
-		}
-	}
-
-}
-
 func TestRelTime(t *testing.T) {
 	ctx, err := context.New()
 	if err != nil {
@@ -88,13 +57,4 @@ func TestRelTime(t *testing.T) {
 	if skip != 1 {
 		t.Fatalf("want the number of skip test is %d,but got %d", 1, skip)
 	}
-}
-
-func contains(list []string, item string) bool {
-	for _, v := range list {
-		if v == item {
-			return true
-		}
-	}
-	return false
 }

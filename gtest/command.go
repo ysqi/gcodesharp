@@ -3,12 +3,10 @@ package gtest
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os/exec"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -67,7 +65,7 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	// add path
 	for _, p := range cfg.importpaths {
 		if cfg.ContainImport {
-			list, err := getPackageList(p)
+			list, err := context.GetPackagePaths(p)
 			if err != nil {
 				return nil, err
 			}
@@ -166,34 +164,4 @@ func run(packagepath string, args []string) (pkg *Package, err error) {
 		pkg.Err = appendLine(pkg.Err, errStr)
 	}
 	return pkg, nil
-}
-
-// getPackageList get all import path prefixed with input
-func getPackageList(pkgpath string) ([]string, error) {
-	if pkgpath == "" {
-		pkgpath = "./..."
-	} else if pkgpath == "." {
-		pkgpath = "./..."
-	} else {
-		pkgpath += "..."
-	}
-	list := []string{}
-	cmd := exec.Command("go", "list", pkgpath)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return list, err
-	}
-	outputStr := string(output)
-	// e.g warning:,
-	if strings.Contains(outputStr, ":") {
-		return list, errors.New(outputStr)
-	}
-	for _, line := range strings.Split(outputStr, "\n") {
-		// ignore vendor path
-		if strings.Contains(line, "/vendor/") {
-			continue
-		}
-		list = append(list, line)
-	}
-	return list, nil
 }

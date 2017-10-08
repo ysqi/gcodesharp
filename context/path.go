@@ -1,12 +1,44 @@
 package context
 
 import (
+	"errors"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 )
+
+// GetPackagePaths get all import path prefixed with input
+func GetPackagePaths(pkgpath string) ([]string, error) {
+	if pkgpath == "" {
+		pkgpath = "./..."
+	} else if pkgpath == "." {
+		pkgpath = "./..."
+	} else {
+		pkgpath += "..."
+	}
+	list := []string{}
+	cmd := exec.Command("go", "list", pkgpath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return list, err
+	}
+	outputStr := string(output)
+	// e.g warning:,
+	if strings.Contains(outputStr, ":") {
+		return list, errors.New(outputStr)
+	}
+	for _, line := range strings.Split(outputStr, "\n") {
+		// ignore vendor path
+		if strings.Contains(line, "/vendor/") {
+			continue
+		}
+		list = append(list, line)
+	}
+	return list, nil
+}
 
 // FindImportPath takes a absolute directory and returns the import path and go path.
 func (ctx *Context) FindImportPath(dir string) (importPath, gopath string, err error) {
