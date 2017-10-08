@@ -3,12 +3,38 @@ package context
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 )
+
+// GofmtPath return gofmt application file path
+func GofmtPath() string {
+	gofmt := "gofmt"
+	if runtime.GOOS == "window" {
+		gofmt += ".exe"
+	}
+	goroot := os.Getenv("GOROOT")
+	gobin := os.Getenv("GOBIN")
+	if gobin == "" {
+		gobin = filepath.Join(goroot, "bin")
+	}
+	gofmtPath := filepath.Join(gobin, gofmt)
+	if _, err := os.Stat(gofmtPath); err == nil {
+		return gofmtPath
+	}
+
+	gofmtPath = filepath.Join(goroot, "bin", gofmt)
+	if _, err := os.Stat(gofmtPath); err == nil {
+		return gofmtPath
+	}
+
+	// fallback to looking for gofmt in $PATH
+	return "gofmt"
+}
 
 // GetPackagePaths get all import path prefixed with input
 func GetPackagePaths(pkgpath string) ([]string, error) {

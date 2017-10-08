@@ -13,7 +13,7 @@ go get -u github.com/ysqi/gcodesharp
 - [x] support go test
 - [x] support go test result report to junit
 - [ ] support go vet
-- [ ] support go fmt
+- [x] support go fmt
 - [ ] support golint
 - [ ] create a html report contain all thing
 
