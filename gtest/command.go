@@ -61,7 +61,7 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 	}
 
 	for _, p := range packagepaths {
-		args := []string{"-cover", "-v", "-timeout", "3s"}
+		args := []string{"-cover", "-v"}
 		pkg, err := run(p, args)
 		if err != nil {
 			return nil, err
