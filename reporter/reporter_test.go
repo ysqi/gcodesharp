@@ -156,6 +156,7 @@ func TestReporter_ServiceStart(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.Wait()
+
 	for _, s := range services {
 		if !started[s] {
 			t.Fatal(reflect.TypeOf(s).String(), "service is not running")

@@ -1,12 +1,11 @@
 package reporter
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 // Reporter is a report service manager.
@@ -77,22 +76,19 @@ func (r *Reporter) Start() error {
 
 	// run service one by one
 	r.serviceProcess = sync.WaitGroup{}
-	r.serviceProcess.Add(len(r.services[false]))
-	fmt.Println(len(r.services[false]))
 	for _, s := range r.services[false] {
+		r.serviceProcess.Add(1)
 		r.services[true] = append(r.services[true], s)
 		go func(s Service) {
+			defer r.serviceProcess.Done()
 			if !r.running {
 				return
 			}
 			if err := trycatch(s.Run); err != nil {
-				r.Stop()
+				go r.Stop()
 				return
 			}
 			s.Wait()
-			if r.running {
-				r.serviceProcess.Done()
-			}
 		}(s)
 	}
 
@@ -102,6 +98,7 @@ func (r *Reporter) Start() error {
 // Stop the reporter and each of running service.
 // disable stop the not running reporter,otherwise return error.
 // return the stop error if one service stop failed.
+// Note: this stop action will wait for all service stop done.
 func (r *Reporter) Stop() error {
 	r.Lock()
 	defer r.Unlock()
@@ -109,16 +106,15 @@ func (r *Reporter) Stop() error {
 		return ErrNotRunning
 	}
 	r.running = false
-
 	runningError := ReportActionError{action: "stop report"}
 	// stop the each of running service
 	for _, s := range r.services[true] {
 		if err := trycatch(s.Stop); err != nil {
 			runningError.services[reflect.TypeOf(s)] = err
 		}
-		r.serviceProcess.Done()
 	}
 
+	r.serviceProcess.Wait()
 	r.services = nil
 
 	if len(runningError.services) > 0 {
