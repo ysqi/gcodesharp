@@ -3,6 +3,7 @@ package gfmt
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"os/exec"
 	"regexp"
@@ -43,6 +44,10 @@ type File struct {
 	Diff    string
 	NeedFmt bool
 }
+
+//func New(ctx reporter.ServiceContext) (reporter.Service,error){
+//	return
+//}
 
 // Run run go fmt and return report
 func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
@@ -89,8 +94,12 @@ func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
 }
 
 var (
-	//e.g diff testdata/needFmt.go gofmt/./testdata/needFmt.go
-	regDiffHead = regexp.MustCompile(`^diff (\S+)\s\S+`)
+	// Match diff print info
+	//
+	// diff testdata/needFmt.go gofmt/./testdata/needFmt.go
+	//
+	// diff -u ./testdata/needFmt.go.orig  ./testdata/needFmt.go
+	regDiffHead = regexp.MustCompile(`^diff(?: -u){0,1} \S+\s(?:gofmt\/){0,1}(\S+)$`)
 )
 
 func runGoFmt(files []*File) error {
@@ -126,7 +135,9 @@ func runGoFmt(files []*File) error {
 		if matches := regDiffHead.FindSubmatch([]byte(line)); len(matches) == 2 {
 			//add to file diff
 			name := string(matches[1])
+			fmt.Println("find diff===>", name)
 			for _, f := range files {
+				fmt.Println(f.Name == name, f.Name)
 				if f.Name == name {
 					file = f
 					file.NeedFmt = true
