@@ -1,6 +1,7 @@
 package gfmt
 
 import (
+	"go/build"
 	"strings"
 	"testing"
 
@@ -12,23 +13,25 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg := Config{
-		PackagePaths: []string{"github.com/ysqi/gcodesharp"},
-	}
-	report, err := Run(ctx, &cfg)
+
+	p, err := build.Import("github.com/ysqi/gcodesharp/gfmt/testdata", "", build.IgnoreVendor)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.GoFmt != gofmtpath {
+	ctx.Packages = append(ctx.Packages, p)
+	s, err := New(ctx, func(service, msg string) {
+		t.Fatalf("%s:%s", service, msg)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Run()
+	s.Wait()
+	if s.Report.GoFmt != gofmtpath {
 		t.Fatal("need gofmt path value")
 	}
-	if len(report.Files) == 0 {
-		t.Fatal("need more one go file to check go format")
-	}
-	for _, f := range report.Files {
-		if f.NeedFmt && f.Name != "gfmt_test.go" {
-			t.Fatalf("%q want no need gofmt but got need", f.Name)
-		}
+	if len(s.Report.Files) == 2 {
+		t.Fatal("need report two file")
 	}
 }
 
@@ -51,10 +54,7 @@ func TestGetGoFiles(t *testing.T) {
 }
 
 func TestGoFmt(t *testing.T) {
-	files := []*File{
-		&File{Name: "gfmt_test.go"},
-	}
-	err := runGoFmt(files)
+	files, err := runGoFmt("gfmt_test.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,11 +68,8 @@ func TestGoFmt(t *testing.T) {
 		}
 	}
 
-	files = []*File{
-		&File{Name: "gfmt.go"},
-		&File{Name: "gfmt_test2.go"},
-	}
-	if err = runGoFmt(files); err == nil {
+	files, err = runGoFmt("gfmt.go", "gfmt_test2.go")
+	if err == nil {
 		t.Fatal("need error,but got nil")
 	}
 	for _, f := range files {
@@ -81,11 +78,8 @@ func TestGoFmt(t *testing.T) {
 		}
 	}
 
-	files = []*File{
-		&File{Name: "./testdata/needFmt.go"},
-		&File{Name: "./testdata/needFmt2.go"},
-	}
-	if err = runGoFmt(files); err != nil {
+	files, err = runGoFmt("./testdata/needFmt.go", "./testdata/needFmt2.go")
+	if err != nil {
 		t.Fatal(err)
 	}
 	if !files[0].NeedFmt {

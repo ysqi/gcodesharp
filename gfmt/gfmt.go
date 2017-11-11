@@ -3,12 +3,13 @@ package gfmt
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"log"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ysqi/gcodesharp/context"
@@ -29,13 +30,6 @@ type Report struct {
 
 var gofmtpath string
 
-// Config run go test config
-type Config struct {
-	PackagePaths  []string //need run go test for some dir
-	ContainImport bool     //need run all for child dir
-	PrintLog      bool
-}
-
 // File need format go file
 type File struct {
 	// Name file name
@@ -45,52 +39,101 @@ type File struct {
 	NeedFmt bool
 }
 
-//func New(ctx reporter.ServiceContext) (reporter.Service,error){
-//	return
-//}
+type Service struct {
+	Report
 
-// Run run go fmt and return report
-func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
-	if len(cfg.PackagePaths) == 0 {
-		cfg.PackagePaths = append(cfg.PackagePaths, ".")
-	}
-	report = &Report{
-		Created: time.Now(),
-	}
-	report.Env.GoVersion = runtime.Version()
-	report.Env.OS = runtime.GOOS
-	report.Env.Arch = runtime.GOARCH
-	report.GoFmt = gofmtpath
-	for _, p := range cfg.PackagePaths {
-		files, err := getGoFiles(p)
-		if err != nil {
-			return nil, err
-		}
-		for _, f := range files {
-			report.Files = append(report.Files, &File{
-				Name: f,
-			})
-		}
-	}
+	ctx *context.Context
 
-	if len(report.Files) == 0 {
-		return
-	}
-	// run go fmt  with 20 files every times
-	once := 20
-	max := len(report.Files)
-	for i := 0; i < max; i += once {
-		right := i + once
-		if right >= max {
-			right = max
+	completed chan struct{}
+	errh      func(service, msg string)
+	exit      chan struct{}
+	waitGroup sync.WaitGroup
+}
+
+func New(ctx *context.Context, errh func(service, msg string)) (*Service, error) {
+	return &Service{
+		ctx:  ctx,
+		errh: errh,
+
+		completed: make(chan struct{}, 1),
+		exit:      make(chan struct{}, 3),
+	}, nil
+}
+func (s *Service) error(msg string) {
+	s.errh("gfmt", msg)
+	s.Stop()
+}
+
+// Run go fmt
+func (s *Service) Run() error {
+	s.Created = time.Now()
+	s.Env.GoVersion = runtime.Version()
+	s.Env.OS = runtime.GOOS
+	s.Env.Arch = runtime.GOARCH
+	s.GoFmt = gofmtpath
+
+	go func() {
+		wg := sync.WaitGroup{}
+		wg.Add(len(s.ctx.Packages))
+		for _, p := range s.ctx.Packages {
+			files := p.GoFiles
+			// absolute path.
+			for i := 0; i < len(files); i++ {
+				files[i] = filepath.Join(p.Dir, files[i])
+			}
+			// batch gofmt
+			go func(files []string) {
+				defer wg.Done()
+				select {
+				default:
+				case <-s.exit:
+					return
+				}
+				result := s.gofmt(files)
+				s.Report.Files = append(s.Report.Files, result...)
+
+			}(files)
+
+			//abort the foreach if exit
+			select {
+			case <-s.exit:
+				break
+			default:
+			}
 		}
-		err = runGoFmt(report.Files[i:right])
-		if err != nil {
-			return nil, err
+		go func() {
+			// wait for all go fmt done
+			wg.Wait()
+			s.Cost = float32(time.Since(s.Created).Seconds())
+			close(s.completed)
+		}()
+	}()
+
+	return nil
+}
+
+func (s *Service) Stop() error {
+	close(s.exit)
+	return nil
+}
+
+func (s *Service) Wait() error {
+	for {
+		select {
+		case <-s.exit:
+			return nil
+		case <-s.completed:
+			return nil
+		case <-time.After(1 * time.Second):
 		}
 	}
-	report.Cost = float32(time.Since(report.Created).Seconds())
-	return report, nil
+}
+func (s *Service) gofmt(files []string) []*File {
+	result, err := runGoFmt(files...)
+	if err != nil {
+		s.error(err.Error())
+	}
+	return result
 }
 
 var (
@@ -102,30 +145,27 @@ var (
 	regDiffHead = regexp.MustCompile(`^diff(?: -u){0,1} \S+\s(?:gofmt\/){0,1}(\S+)$`)
 )
 
-func runGoFmt(files []*File) error {
-	args := []string{}
-	for _, f := range files {
-		args = append(args, f.Name)
-	}
+func runGoFmt(files ...string) ([]*File, error) {
+
 	var (
 		stderr bytes.Buffer
 		stdout bytes.Buffer
 	)
 	cmd := exec.Command(gofmtpath, "-d", "-e", "-s")
-	cmd.Args = append(cmd.Args, args...)
+	cmd.Args = append(cmd.Args, files...)
 	cmd.Stderr = &stderr
 	cmd.Stdout = &stdout
 	if err := cmd.Start(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := cmd.Wait(); err != nil {
 		s := stderr.String()
 		if s != "" {
-			return errors.New(stderr.String() + "\n" + err.Error())
+			return nil, errors.New(stderr.String() + "\n" + err.Error())
 		}
-		return err
+		return nil, err
 	}
-
+	var result []*File
 	// read output add add to diffrent file
 	var file *File
 	for _, line := range strings.Split(stdout.String(), "\n") {
@@ -133,23 +173,25 @@ func runGoFmt(files []*File) error {
 			log.Println(line)
 		}
 		if matches := regDiffHead.FindSubmatch([]byte(line)); len(matches) == 2 {
+			// save before go fmt result
+			if file != nil {
+				result = append(result, file)
+			}
+
 			//add to file diff
 			name := string(matches[1])
-			fmt.Println("find diff===>", name)
-			for _, f := range files {
-				fmt.Println(f.Name == name, f.Name)
-				if f.Name == name {
-					file = f
-					file.NeedFmt = true
-				}
+			file = &File{
+				Name:    name,
+				NeedFmt: true,
 			}
 			continue
 		}
+		// add content as diff body
 		if file != nil {
 			file.Diff += line + "\n"
 		}
 	}
-	return nil
+	return result, nil
 }
 
 // getGoFiles get go file that would be executed by go fmt
