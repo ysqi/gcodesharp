@@ -166,6 +166,11 @@ func runGoFmt(files ...string) ([]*File, error) {
 		return nil, err
 	}
 	var result []*File
+	for _, f := range files {
+		result = append(result, &File{
+			Name: f,
+		})
+	}
 	// read output add add to diffrent file
 	var file *File
 	for _, line := range strings.Split(stdout.String(), "\n") {
@@ -173,16 +178,15 @@ func runGoFmt(files ...string) ([]*File, error) {
 			log.Println(line)
 		}
 		if matches := regDiffHead.FindSubmatch([]byte(line)); len(matches) == 2 {
-			// save before go fmt result
-			if file != nil {
-				result = append(result, file)
-			}
-
-			//add to file diff
+			// find file
 			name := string(matches[1])
-			file = &File{
-				Name:    name,
-				NeedFmt: true,
+			for _, f := range result {
+				if f.Name == name {
+					file = f
+					file.NeedFmt = true
+					break
+				}
+
 			}
 			continue
 		}

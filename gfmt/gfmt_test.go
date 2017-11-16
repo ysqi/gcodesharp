@@ -30,8 +30,8 @@ func TestRun(t *testing.T) {
 	if s.Report.GoFmt != gofmtpath {
 		t.Fatal("need gofmt path value")
 	}
-	if len(s.Report.Files) == 2 {
-		t.Fatal("need report two file")
+	if len(s.Report.Files) != 2 {
+		t.Fatalf("need report two file ,got %d files", len(s.Report.Files))
 	}
 }
 
@@ -59,13 +59,8 @@ func TestGoFmt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !files[0].NeedFmt {
+	if files[0].NeedFmt {
 		t.Fatal("want need format but got no need")
-	} else {
-		diff := `-		&File{Name: "gfmt_test.go"}`
-		if !strings.Contains(files[0].Diff, diff) {
-			t.Fatal("need contains diff\n" + diff)
-		}
 	}
 
 	files, err = runGoFmt("gfmt.go", "gfmt_test2.go")
