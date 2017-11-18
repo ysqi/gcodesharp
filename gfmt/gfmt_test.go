@@ -19,8 +19,8 @@ func TestRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx.Packages = append(ctx.Packages, p)
-	s, err := New(ctx, func(service, msg string) {
-		t.Fatalf("%s:%s", service, msg)
+	s, err := New(ctx, func(fmt_ string, args ...interface{}) {
+		t.Fatalf(fmt_, args...)
 	})
 	if err != nil {
 		t.Fatal(err)

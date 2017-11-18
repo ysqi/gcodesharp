@@ -1,7 +1,6 @@
 package reporter
 
 import (
-	"go/build"
 	"io"
 
 	"github.com/ysqi/gcodesharp/context"
@@ -33,13 +32,12 @@ type Service interface {
 // ServiceContext is a context for report work
 type ServiceContext struct {
 	// Global context contains os info
-	GlobalCxt context.Context
-	// Packages is list of need handle package
-	Packages []*build.Package
-	// sub package path will be processed if set true
-	ContainSubDir bool
+	GlobalCxt *context.Context
+
 	// list of program run arg
 	Flagset *pflag.FlagSet
+
+	ErrH func(fm string, args ...interface{})
 }
 
 // An service constructor

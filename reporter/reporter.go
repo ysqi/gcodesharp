@@ -23,9 +23,9 @@ type Reporter struct {
 }
 
 // New return a new report manager
-func New(ctx ServiceContext) (*Reporter, error) {
+func New(ctx *ServiceContext) (*Reporter, error) {
 	r := Reporter{
-		context: &ctx,
+		context: ctx,
 	}
 	return &r, nil
 }
@@ -115,7 +115,7 @@ func (r *Reporter) Stop() error {
 	}
 
 	r.serviceProcess.Wait()
-	r.services = nil
+	//r.services = nil
 
 	if len(runningError.services) > 0 {
 		return runningError
@@ -143,6 +143,7 @@ func (r *Reporter) Wait() {
 	}
 	r.Unlock()
 	r.serviceProcess.Wait()
+	r.running = false
 }
 
 // trycatch try catch panic error

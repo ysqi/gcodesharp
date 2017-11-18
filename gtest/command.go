@@ -13,6 +13,8 @@ import (
 	"github.com/ysqi/gcodesharp/context"
 )
 
+type errHander func(fm string, args ...interface{})
+
 // Report go test report
 type Report struct {
 	Env struct {
@@ -21,6 +23,7 @@ type Report struct {
 		Arch      string
 	}
 	Creted   time.Time
+	Cost     float32
 	Packages []*Package
 }
 
@@ -30,46 +33,91 @@ type Config struct {
 	ContainImport bool     //need run all for child dir
 }
 
-// Run go test command.
-// return the test result info and realtime print info with logger.
-func Run(ctx *context.Context, cfg *Config) (report *Report, err error) {
-	if len(cfg.PackagePaths) == 0 {
-		cfg.PackagePaths = append(cfg.PackagePaths, ".")
-	}
-	report = &Report{
-		Packages: []*Package{},
-		Creted:   time.Now(),
-	}
-	report.Env.GoVersion = runtime.Version()
-	report.Env.OS = runtime.GOOS
-	report.Env.Arch = runtime.GOARCH
+type Service struct {
+	Report
 
-	packagepaths := []string{}
-	// add path
-	for _, p := range cfg.PackagePaths {
-		if cfg.ContainImport {
-			list, err := context.GetPackagePaths(p)
-			if err != nil {
-				return nil, err
+	ctx *context.Context
+
+	errh      errHander
+	completed chan struct{}
+	exit      chan struct{}
+}
+
+func New(ctx *context.Context, errh errHander) (*Service, error) {
+	return &Service{
+		ctx:       ctx,
+		errh:      errh,
+		completed: make(chan struct{}, 1),
+		exit:      make(chan struct{}, 3),
+	}, nil
+}
+
+func (s *Service) error(msg string) {
+	s.errh("gtest: %s", msg)
+	s.Stop()
+}
+
+func (s *Service) Run() error {
+
+	s.Report.Creted = time.Now()
+	s.Report.Env.GoVersion = runtime.Version()
+	s.Report.Env.OS = runtime.GOOS
+	s.Report.Env.Arch = runtime.GOARCH
+
+	go func() {
+		wg := sync.WaitGroup{}
+		wg.Add(len(s.ctx.Packages))
+		for _, p := range s.ctx.Packages {
+
+			// batch gofmt
+			go func(path string) {
+				defer wg.Done()
+				select {
+				default:
+				case <-s.exit:
+					return
+				}
+				pkg, err := run(path, []string{"-cover", "-v"})
+				if err != nil {
+					s.error(err.Error())
+					return
+				}
+				s.Report.Packages = append(s.Report.Packages, pkg)
+
+			}(p.ImportPath)
+
+			//abort the foreach if exit
+			select {
+			case <-s.exit:
+				break
+			default:
 			}
-			// add all child import path to cmd.
-			// note:contains self.
-			packagepaths = append(packagepaths, list...)
-		} else {
-			packagepaths = append(packagepaths, p)
+		}
+		go func() {
+			// wait for all go test  done
+			wg.Wait()
+			s.Report.Cost = float32(time.Since(s.Report.Creted).Seconds())
+			close(s.completed)
+		}()
+	}()
+	return nil
+}
+
+func (s *Service) Stop() error {
+	close(s.exit)
+	return nil
+}
+
+func (s *Service) Wait() error {
+	for {
+		select {
+		case <-s.exit:
+			return nil
+		case <-s.completed:
+			return nil
+		case <-time.After(1 * time.Second):
 		}
 	}
-
-	for _, p := range packagepaths {
-		args := []string{"-cover", "-v"}
-		pkg, err := run(p, args)
-		if err != nil {
-			return nil, err
-		}
-		report.Packages = append(report.Packages, pkg)
-	}
-
-	return report, nil
 }
 
 func run(packagepath string, args []string) (pkg *Package, err error) {

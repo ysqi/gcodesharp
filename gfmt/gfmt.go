@@ -15,6 +15,8 @@ import (
 	"github.com/ysqi/gcodesharp/context"
 )
 
+type errHander func(fm string, args ...interface{})
+
 // Report gofmt result
 type Report struct {
 	Files   []*File
@@ -26,9 +28,14 @@ type Report struct {
 		OS        string
 		Arch      string
 	}
+	SysErr error
 }
 
 var gofmtpath string
+
+func init() {
+	gofmtpath = context.GofmtPath()
+}
 
 // File need format go file
 type File struct {
@@ -44,13 +51,16 @@ type Service struct {
 
 	ctx *context.Context
 
+	running   bool
 	completed chan struct{}
-	errh      func(service, msg string)
+	errh      errHander
 	exit      chan struct{}
 	waitGroup sync.WaitGroup
+
+	sync.Mutex
 }
 
-func New(ctx *context.Context, errh func(service, msg string)) (*Service, error) {
+func New(ctx *context.Context, errh errHander) (*Service, error) {
 	return &Service{
 		ctx:  ctx,
 		errh: errh,
@@ -60,12 +70,19 @@ func New(ctx *context.Context, errh func(service, msg string)) (*Service, error)
 	}, nil
 }
 func (s *Service) error(msg string) {
-	s.errh("gfmt", msg)
+	s.SysErr = errors.New(msg)
+	s.errh("gfmt: %s", msg)
 	s.Stop()
 }
 
 // Run go fmt
 func (s *Service) Run() error {
+	if s.running {
+		return errors.New("gfmt is running")
+	}
+	s.Lock()
+	defer s.Unlock()
+
 	s.Created = time.Now()
 	s.Env.GoVersion = runtime.Version()
 	s.Env.OS = runtime.GOOS
@@ -108,16 +125,25 @@ func (s *Service) Run() error {
 			close(s.completed)
 		}()
 	}()
-
+	s.running = true
 	return nil
 }
 
 func (s *Service) Stop() error {
+	if !s.running {
+		return nil
+	}
+	s.Lock()
+	defer s.Unlock()
 	close(s.exit)
+	s.running = false
 	return nil
 }
 
 func (s *Service) Wait() error {
+	if !s.running {
+		return nil
+	}
 	for {
 		select {
 		case <-s.exit:
@@ -127,6 +153,8 @@ func (s *Service) Wait() error {
 		case <-time.After(1 * time.Second):
 		}
 	}
+	s.running = false
+	return nil
 }
 func (s *Service) gofmt(files []string) []*File {
 	result, err := runGoFmt(files...)
@@ -231,8 +259,4 @@ func getGoFiles(packagepath string) (files []string, err error) {
 		}
 	}
 	return
-}
-
-func init() {
-	gofmtpath = context.GofmtPath()
 }

@@ -22,7 +22,7 @@ func (h *HelloService) Wait() error {
 
 func TestReporter_Default(t *testing.T) {
 	ctx := ServiceContext{}
-	r, err := New(ctx)
+	r, err := New(&ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestReporter_Default(t *testing.T) {
 
 func TestReporter_DuplicateReg(t *testing.T) {
 	ctx := ServiceContext{}
-	r, err := New(ctx)
+	r, err := New(&ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestReporter_DuplicateReg(t *testing.T) {
 
 func TestReporter_ErrorStart(t *testing.T) {
 	ctx := ServiceContext{}
-	r, err := New(ctx)
+	r, err := New(&ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func loadHook(ins Service, run, stop, wait hook) {
 }
 func TestReporter_ServiceStart(t *testing.T) {
 	ctx := ServiceContext{}
-	r, err := New(ctx)
+	r, err := New(&ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestReporter_ServiceStart(t *testing.T) {
 
 func TestReporter_ServiceErrorStart(t *testing.T) {
 	ctx := ServiceContext{}
-	r, err := New(ctx)
+	r, err := New(&ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestReporter_ServiceErrorStart(t *testing.T) {
 
 func TestReporter_CatchServicePanicErrorStart(t *testing.T) {
 	ctx := ServiceContext{}
-	r, err := New(ctx)
+	r, err := New(&ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func TestReporter_CatchServicePanicErrorStart(t *testing.T) {
 	r.Wait()
 	for _, s := range services {
 		if !stopped[s] {
-			t.Fatal(reflect.TypeOf(s).String(), "service is not running")
+			t.Fatal(reflect.TypeOf(s).String(), "service is running")
 		}
 	}
 }
@@ -266,7 +266,7 @@ func (m MyMap) Set(s Service) {
 
 func TestReporter_ServiceStop(t *testing.T) {
 	ctx := ServiceContext{}
-	r, err := New(ctx)
+	r, err := New(&ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

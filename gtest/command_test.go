@@ -1,6 +1,7 @@
 package gtest
 
 import (
+	"go/build"
 	"strings"
 	"testing"
 
@@ -12,26 +13,38 @@ func TestRelTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	report, err := Run(ctx, &Config{
-		PackagePaths:  []string{"github.com/ysqi/gcodesharp/gtest/testdata"},
-		ContainImport: false,
+
+	p, err := build.Import("github.com/ysqi/gcodesharp/gtest/testdata", "", build.IgnoreVendor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx.Packages = append(ctx.Packages, p)
+
+	ser, err := New(ctx, func(fm string, args ...interface{}) {
+		t.Fatalf(fm, args...)
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(report.Packages) != 1 {
+	err = ser.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ser.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(ser.Report.Packages) != 1 {
 		t.Fatal("want one pakcage rest report,but zero")
 	}
-	pkg := report.Packages[0]
+	pkg := ser.Report.Packages[0]
 	for _, u := range pkg.Units {
 		t.Logf("%+v", u)
 	}
 	if !pkg.Failed {
 		t.Fatal("want test failed, but pass")
 	}
-	// if pkg.Err != "exit status 1" {
-	// 	t.Fatalf("want error 'exit status 1' got '%s'", pkg.Err)
-	// }
 	if pkg.Cost == 0.0 {
 		t.Fatal("want get package run test speed time")
 	}

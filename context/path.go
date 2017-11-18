@@ -38,13 +38,13 @@ func GofmtPath() string {
 
 // GetPackagePaths get all import path prefixed with input
 func GetPackagePaths(pkgpath string) ([]string, error) {
-	if pkgpath == "" {
-		pkgpath = "./..."
-	} else if pkgpath == "." {
-		pkgpath = "./..."
-	} else {
-		pkgpath += "..."
-	}
+	//if pkgpath == "" {
+	//	pkgpath = "./..."
+	//} else if pkgpath == "." {
+	//	pkgpath = "./..."
+	//} else {
+	//	pkgpath += "..."
+	//}
 	list := []string{}
 	cmd := exec.Command("go", "list", pkgpath)
 	output, err := cmd.CombinedOutput()
@@ -57,8 +57,8 @@ func GetPackagePaths(pkgpath string) ([]string, error) {
 		return list, errors.New(outputStr)
 	}
 	for _, line := range strings.Split(outputStr, "\n") {
-		// ignore vendor path
-		if strings.Contains(line, "/vendor/") {
+		// ignore vendor path ,empty path.
+		if line == "" || strings.Contains(line, "/vendor/") {
 			continue
 		}
 		list = append(list, line)

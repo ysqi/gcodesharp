@@ -3,7 +3,7 @@ package context
 import "testing"
 
 func TestPackageList(t *testing.T) {
-	list, err := GetPackagePaths("github.com/ysqi/gcodesharp")
+	list, err := GetPackagePaths("github.com/ysqi/gcodesharp/...")
 	if err != nil {
 		t.Fatal(err)
 	}

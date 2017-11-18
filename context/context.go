@@ -2,6 +2,7 @@ package context
 
 import (
 	"errors"
+	"go/build"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +14,9 @@ type Context struct {
 	GopathList []string // List of GOPATHs in environment. Includes "src" dir.
 	Goroot     string   // The path to the standard library.
 	GoEnv      map[string]string
+
+	// Packages is list of need handle package
+	Packages []*build.Package
 }
 
 // New create a new context.
