@@ -1,4 +1,4 @@
-// Copyright (C) 2017. author ysqi
+// Copyright (C) 2017. author ysqi(devysq@gmail.com).
 //
 // The gcodesharp is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
