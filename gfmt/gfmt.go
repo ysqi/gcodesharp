@@ -96,7 +96,9 @@ func (s *Service) Run() error {
 			files := p.GoFiles
 			// absolute path.
 			for i := 0; i < len(files); i++ {
-				files[i] = filepath.Join(p.Dir, files[i])
+				if !filepath.IsAbs(files[i]) {
+					files[i] = filepath.Join(p.Dir, files[i])
+				}
 			}
 			// batch gofmt
 			go func(files []string) {
