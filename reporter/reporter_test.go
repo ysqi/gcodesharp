@@ -234,13 +234,14 @@ func TestReporter_CatchServicePanicErrorStart(t *testing.T) {
 	started := MyMap{}
 	stopped := MyMap{}
 
-	for i, s := range services {
+	var panicSer Service
+	for _, s := range services {
 		ser := s
-		i := i
 		r.Register(func(ctx *ServiceContext) (Service, error) {
 			loadHook(ser,
 				func() error {
-					if i == len(services)-1 {
+					if len(started) == len(services)-1 {
+						panicSer = ser
 						panic("ha ha")
 					}
 					started.Set(ser)
@@ -263,9 +264,15 @@ func TestReporter_CatchServicePanicErrorStart(t *testing.T) {
 	}
 	r.Wait()
 	for _, s := range services {
-		if !stopped[s] {
-			t.Fatal(reflect.TypeOf(s).String(), "service is running")
+		if !started[s] && s != panicSer {
+			t.Fatal(reflect.TypeOf(s).String(), "service need started")
 		}
+		if stopped[s] && s != panicSer {
+			t.Fatal(reflect.TypeOf(s).String(), "service should not stoped")
+		}
+	}
+	if stopped[panicSer] {
+		t.Fatal(reflect.TypeOf(panicSer).String(), "service need stoped")
 	}
 }
 
@@ -324,7 +331,7 @@ func TestReporter_ServiceStop(t *testing.T) {
 
 	for _, s := range services {
 		if !stopped[s] {
-			t.Fatal(reflect.TypeOf(s).String(), "service is not running")
+			t.Fatal(reflect.TypeOf(s).String(), "service is running need stoped")
 		}
 	}
 }

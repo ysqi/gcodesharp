@@ -50,24 +50,6 @@ func TestRun(t *testing.T) {
 	}
 }
 
-func TestGetGoFiles(t *testing.T) {
-	files, err := getGoFiles(".")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(files) < 2 {
-		t.Fatalf("want get more than two go file,but got %d items", len(files))
-	}
-
-	if !contains(files, "gfmt.go") {
-		t.Fatal("want contain gfmt.go in files")
-	}
-	if !contains(files, "gfmt_test.go") {
-		t.Fatal("want contain gfmt_test.go in files")
-	}
-}
-
 func TestGoFmt(t *testing.T) {
 	files, err := runGoFmt("gfmt_test.go")
 	if err != nil {
@@ -102,13 +84,4 @@ func TestGoFmt(t *testing.T) {
 
 	}
 
-}
-
-func contains(list []string, item string) bool {
-	for _, v := range list {
-		if v == item {
-			return true
-		}
-	}
-	return false
 }

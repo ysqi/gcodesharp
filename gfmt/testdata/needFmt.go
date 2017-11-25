@@ -18,6 +18,6 @@ package testdata
 import "fmt"
 
 func One() {
-	s := "hello"
+s := "hello"
 	fmt.Println(s + " need go format")
 }

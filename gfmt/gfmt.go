@@ -242,38 +242,3 @@ func runGoFmt(files ...string) ([]*File, error) {
 	}
 	return result, nil
 }
-
-// getGoFiles get go file that would be executed by go fmt
-// gofmt is gofmt application full path
-func getGoFiles(packagepath string) (files []string, err error) {
-	if packagepath == "" || packagepath == "." {
-		packagepath = "./..."
-	} else {
-		packagepath += "..."
-	}
-
-	cmd := exec.Command("go", "fmt", "-n", packagepath)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return files, err
-	}
-
-	//output such like this:
-	//	/usr/local/go/bin/gofmt -l -w command.go main.go
-	// 	/usr/local/go/bin/gofmt -l -w context/context.go context/path.go context/path_test.go
-	lines := strings.Split(string(output), "\n")
-
-	for _, line := range lines {
-		arr := strings.Split(line, " ")
-		if len(arr) <= 3 {
-			continue
-		}
-		for _, f := range arr[3:] {
-			if strings.Contains(f, "vendor/") {
-				continue
-			}
-			files = append(files, f)
-		}
-	}
-	return
-}
