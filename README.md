@@ -14,7 +14,7 @@ go get -u github.com/ysqi/gcodesharp
 - [x] support go test result report to junit
 - [ ] support go vet
 - [x] support go fmt
-- [ ] support golint
+- [x] support golint
 - [ ] create a html report contain all thing
 
 # Get Help

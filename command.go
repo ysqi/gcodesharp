@@ -9,6 +9,7 @@ import (
 
 	"github.com/ysqi/gcodesharp/context"
 	"github.com/ysqi/gcodesharp/gfmt"
+	"github.com/ysqi/gcodesharp/glint"
 	"github.com/ysqi/gcodesharp/gtest"
 	"github.com/ysqi/gcodesharp/reporter"
 
@@ -39,7 +40,8 @@ func run(c *cobra.Command, args []string) {
 	if err != nil {
 		Failf(err.Error())
 	}
-	regGoFormatServer(rp)
+	regGoFormatService(rp)
+	regGolintService(rp)
 	regGoTestService(rp)
 
 	err = rp.Start()
@@ -56,11 +58,11 @@ func run(c *cobra.Command, args []string) {
 	}
 }
 
-func Errorf(fmt_ string, args ...interface{}) {
-	if !strings.HasSuffix(fmt_, "\n") {
-		fmt_ += "\n"
+func Errorf(formart string, args ...interface{}) {
+	if !strings.HasSuffix(formart, "\n") {
+		formart += "\n"
 	}
-	fmt.Printf(fmt_, args...)
+	fmt.Printf(formart, args...)
 }
 func Failf(fmt_ string, args ...interface{}) {
 	Errorf(fmt_, args)
@@ -99,7 +101,12 @@ func initCtx(c *cobra.Command, packages ...string) *reporter.ServiceContext {
 	}
 }
 
-func regGoFormatServer(rep *reporter.Reporter) {
+func regGolintService(rep *reporter.Reporter) {
+	rep.Register(func(ctx *reporter.ServiceContext) (reporter.Service, error) {
+		return glint.New(ctx.GlobalCxt, ctx.ErrH)
+	})
+}
+func regGoFormatService(rep *reporter.Reporter) {
 	rep.Register(func(ctx *reporter.ServiceContext) (reporter.Service, error) {
 		return gfmt.New(ctx.GlobalCxt, ctx.ErrH)
 	})
