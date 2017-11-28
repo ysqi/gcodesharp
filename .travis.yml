@@ -1,0 +1,23 @@
+language: go
+
+go:
+  - 1.7.5
+  - 1.8.5
+  - 1.9.2
+install:
+  #- go get github.com/gogo/protobuf/proto
+  #- go get github.com/Knetic/govaluate
+  - go get -u honnef.co/go/tools/cmd/gosimple
+  - go get -u github.com/mdempsky/unconvert
+  - go get -u github.com/gordonklaus/ineffassign
+  - go get -u github.com/golang/lint/golint
+before_script:
+  - sh -c "if [ $(go version) == *1.[5-9]* ]; then go get github.com/golang/lint/golint; golint ./...; fi"
+  - sh -c "if [ $(go version) == *1.[5-9]* ]; then go tool vet .; fi"
+script:
+  - go test -v ./...
+  - gosimple -ignore "$(cat .gosimpleignore)" $(go list ./... | grep -v /vendor/)
+  - unconvert $(go list ./... | grep -v /vendor/)
+  - ineffassign .
+  - find . ! \( -path './vendor' -prune \) -type f -name '*.go' -print0 | xargs -0 gofmt -l -s
+  - golint ./...
