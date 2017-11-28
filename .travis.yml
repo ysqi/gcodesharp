@@ -7,6 +7,7 @@ go:
 install:
   #- go get github.com/gogo/protobuf/proto
   #- go get github.com/Knetic/govaluate
+  - go get -u github.com/spf13/cobra
   - go get -u honnef.co/go/tools/cmd/gosimple
   - go get -u github.com/mdempsky/unconvert
   - go get -u github.com/gordonklaus/ineffassign
