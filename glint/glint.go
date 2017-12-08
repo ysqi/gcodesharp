@@ -13,16 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package gfmt
+package glint
 
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,11 +36,11 @@ type errHander func(fm string, args ...interface{})
 
 // Report gofmt result
 type Report struct {
-	Files   []*File
-	GoFmt   string
-	Created time.Time
-	Cost    float32
-	Env     struct {
+	Files    []*File
+	ExecPath string
+	Created  time.Time
+	Cost     float32
+	Env      struct {
 		GoVersion string
 		OS        string
 		Arch      string
@@ -46,10 +48,10 @@ type Report struct {
 	SysErr error
 }
 
-var gofmtpath string
-
-func init() {
-	gofmtpath = context.GofmtPath()
+type Problem struct {
+	Line int
+	Cell int
+	Info string
 }
 
 // File need format go file
@@ -57,8 +59,24 @@ type File struct {
 	// Name file name
 	Name string
 	// Diff instead of rewriting file
-	Diff    string
-	NeedFmt bool
+	Problem []Problem
+}
+
+func (f *File) HasProblem() bool {
+	return len(f.Problem) > 0
+}
+
+func (f *File) ProblemContent() string {
+	if !f.HasProblem() {
+		return ""
+	}
+	str := bytes.NewBufferString("")
+	for _, p := range f.Problem {
+		str.WriteString(fmt.Sprintf("line:%d:%d ", p.Line, p.Cell))
+		str.WriteString(p.Info)
+		str.WriteString("\n")
+	}
+	return str.String()
 }
 
 type Service struct {
@@ -86,14 +104,14 @@ func New(ctx *context.Context, errh errHander) (*Service, error) {
 }
 func (s *Service) error(msg string) {
 	s.SysErr = errors.New(msg)
-	s.errh("gfmt: %s", msg)
+	s.errh("glint: %s", msg)
 	s.Stop()
 }
 
-// Run go fmt
+// Run go lint
 func (s *Service) Run() error {
 	if s.running {
-		return errors.New("gfmt is running")
+		return errors.New("glint is running")
 	}
 	s.Lock()
 	defer s.Unlock()
@@ -102,8 +120,7 @@ func (s *Service) Run() error {
 	s.Env.GoVersion = runtime.Version()
 	s.Env.OS = runtime.GOOS
 	s.Env.Arch = runtime.GOARCH
-	s.GoFmt = gofmtpath
-
+	s.ExecPath = "golint"
 	go func() {
 		wg := sync.WaitGroup{}
 		wg.Add(len(s.ctx.Packages))
@@ -115,7 +132,7 @@ func (s *Service) Run() error {
 					files[i] = filepath.Join(p.Dir, files[i])
 				}
 			}
-			// batch gofmt
+			// batch golint
 			go func(files []string) {
 				defer wg.Done()
 				select {
@@ -123,7 +140,7 @@ func (s *Service) Run() error {
 				case <-s.exit:
 					return
 				}
-				result := s.gofmt(files)
+				result := s.golint(files)
 				s.Report.Files = append(s.Report.Files, result...)
 
 			}(files)
@@ -136,7 +153,7 @@ func (s *Service) Run() error {
 			}
 		}
 		go func() {
-			// wait for all go fmt done
+			// wait for all go lint done
 			wg.Wait()
 			s.Cost = float32(time.Since(s.Created).Seconds())
 			close(s.completed)
@@ -173,8 +190,8 @@ func (s *Service) Wait() error {
 	s.running = false
 	return nil
 }
-func (s *Service) gofmt(files []string) []*File {
-	result, err := runGoFmt(files...)
+func (s *Service) golint(files []string) []*File {
+	result, err := runGolint(files...)
 	if err != nil {
 		s.error(err.Error())
 	}
@@ -182,21 +199,17 @@ func (s *Service) gofmt(files []string) []*File {
 }
 
 var (
-	// Match diff print info
-	//
-	// diff testdata/needFmt.go gofmt/./testdata/needFmt.go
-	//
-	// diff -u ./testdata/needFmt.go.orig  ./testdata/needFmt.go
-	regDiffHead = regexp.MustCompile(`^diff(?: -u){0,1} \S+\s(?:gofmt\/){0,1}(\S+)$`)
+	// Match problem print info
+	regLine = regexp.MustCompile(`^(.+\.go):(\d+):(\d+):(.*)$`)
 )
 
-func runGoFmt(files ...string) ([]*File, error) {
+func runGolint(files ...string) ([]*File, error) {
 
 	var (
 		stderr bytes.Buffer
 		stdout bytes.Buffer
 	)
-	cmd := exec.Command(gofmtpath, "-d", "-e", "-s")
+	cmd := exec.Command("golint")
 	cmd.Args = append(cmd.Args, files...)
 	cmd.Stderr = &stderr
 	cmd.Stdout = &stdout
@@ -216,29 +229,43 @@ func runGoFmt(files ...string) ([]*File, error) {
 			Name: f,
 		})
 	}
-	// read output add add to diffrent file
+	// read output add add to file
 	var file *File
 	for _, line := range strings.Split(stdout.String(), "\n") {
 		if line != "" {
 			log.Println(line)
 		}
-		if matches := regDiffHead.FindSubmatch([]byte(line)); len(matches) == 2 {
+		if matches := regLine.FindSubmatch([]byte(line)); len(matches) == 5 {
 			// find file
 			name := string(matches[1])
 			for _, f := range result {
 				if f.Name == name {
 					file = f
-					file.NeedFmt = true
 					break
 				}
-
 			}
-			continue
-		}
-		// add content as diff body
-		if file != nil {
-			file.Diff += line + "\n"
+			if file != nil {
+				p := Problem{
+					Line: mustInt(matches[2]),
+					Cell: mustInt(matches[3]),
+					Info: string(matches[4]),
+				}
+				file.Problem = append(file.Problem, p)
+			}
 		}
 	}
 	return result, nil
+}
+
+// mustInt convert bytes to float number.
+// os exist with error if parse failed.
+func mustInt(b []byte) int {
+	if len(b) == 0 {
+		return 0
+	}
+	val, err := strconv.ParseInt(string(b), 10, 32)
+	if err != nil {
+		panic("mustInt:" + err.Error())
+	}
+	return int(val)
 }

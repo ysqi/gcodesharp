@@ -1,7 +1,21 @@
+// Copyright (C) 2017. author ysqi(devysq@gmail.com).
+//
+// The gcodesharp is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gcodesharp is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package reporter
 
 import (
-	"go/build"
 	"io"
 
 	"github.com/ysqi/gcodesharp/context"
@@ -33,13 +47,12 @@ type Service interface {
 // ServiceContext is a context for report work
 type ServiceContext struct {
 	// Global context contains os info
-	GlobalCxt context.Context
-	// Packages is list of need handle package
-	Packages []*build.Package
-	// sub package path will be processed if set true
-	ContainSubDir bool
+	GlobalCxt *context.Context
+
 	// list of program run arg
 	Flagset *pflag.FlagSet
+
+	ErrH func(fm string, args ...interface{})
 }
 
 // An service constructor

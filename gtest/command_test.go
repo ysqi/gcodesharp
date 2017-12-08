@@ -1,6 +1,22 @@
+// Copyright (C) 2017. author ysqi(devysq@gmail.com).
+//
+// The gcodesharp is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gcodesharp is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package gtest
 
 import (
+	"go/build"
 	"strings"
 	"testing"
 
@@ -12,26 +28,38 @@ func TestRelTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	report, err := Run(ctx, &Config{
-		PackagePaths:  []string{"github.com/ysqi/gcodesharp/gtest/testdata"},
-		ContainImport: false,
+
+	p, err := build.Import("github.com/ysqi/gcodesharp/gtest/testdata", "", build.IgnoreVendor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx.Packages = append(ctx.Packages, p)
+
+	ser, err := New(ctx, func(fm string, args ...interface{}) {
+		t.Fatalf(fm, args...)
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(report.Packages) != 1 {
+	err = ser.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ser.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(ser.Report.Packages) != 1 {
 		t.Fatal("want one pakcage rest report,but zero")
 	}
-	pkg := report.Packages[0]
+	pkg := ser.Report.Packages[0]
 	for _, u := range pkg.Units {
 		t.Logf("%+v", u)
 	}
 	if !pkg.Failed {
 		t.Fatal("want test failed, but pass")
 	}
-	// if pkg.Err != "exit status 1" {
-	// 	t.Fatalf("want error 'exit status 1' got '%s'", pkg.Err)
-	// }
 	if pkg.Cost == 0.0 {
 		t.Fatal("want get package run test speed time")
 	}

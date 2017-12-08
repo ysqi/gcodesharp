@@ -1,5 +1,7 @@
 # GCodeSharp
 
+![](https://api.travis-ci.org/ysqi/gcodesharp.svg?branch=master)
+
 GCodeSharp is a CLI library for Go language code review applications.
 This application is a tool to generate the report to quickly review the golang code.
 
@@ -14,7 +16,7 @@ go get -u github.com/ysqi/gcodesharp
 - [x] support go test result report to junit
 - [ ] support go vet
 - [x] support go fmt
-- [ ] support golint
+- [x] support golint
 - [ ] create a html report contain all thing
 
 # Get Help

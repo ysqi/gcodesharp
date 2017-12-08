@@ -1,3 +1,18 @@
+// Copyright (C) 2017. author ysqi(devysq@gmail.com).
+//
+// The gcodesharp is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gcodesharp is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package context
 
 import (
@@ -38,13 +53,13 @@ func GofmtPath() string {
 
 // GetPackagePaths get all import path prefixed with input
 func GetPackagePaths(pkgpath string) ([]string, error) {
-	if pkgpath == "" {
-		pkgpath = "./..."
-	} else if pkgpath == "." {
-		pkgpath = "./..."
-	} else {
-		pkgpath += "..."
-	}
+	//if pkgpath == "" {
+	//	pkgpath = "./..."
+	//} else if pkgpath == "." {
+	//	pkgpath = "./..."
+	//} else {
+	//	pkgpath += "..."
+	//}
 	list := []string{}
 	cmd := exec.Command("go", "list", pkgpath)
 	output, err := cmd.CombinedOutput()
@@ -57,8 +72,8 @@ func GetPackagePaths(pkgpath string) ([]string, error) {
 		return list, errors.New(outputStr)
 	}
 	for _, line := range strings.Split(outputStr, "\n") {
-		// ignore vendor path
-		if strings.Contains(line, "/vendor/") {
+		// ignore vendor path ,empty path.
+		if line == "" || strings.Contains(line, "/vendor/") {
 			continue
 		}
 		list = append(list, line)

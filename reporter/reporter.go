@@ -1,3 +1,18 @@
+// Copyright (C) 2017. author ysqi(devysq@gmail.com).
+//
+// The gcodesharp is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gcodesharp is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package reporter
 
 import (
@@ -23,9 +38,9 @@ type Reporter struct {
 }
 
 // New return a new report manager
-func New(ctx ServiceContext) (*Reporter, error) {
+func New(ctx *ServiceContext) (*Reporter, error) {
 	r := Reporter{
-		context: &ctx,
+		context: ctx,
 	}
 	return &r, nil
 }
@@ -115,7 +130,7 @@ func (r *Reporter) Stop() error {
 	}
 
 	r.serviceProcess.Wait()
-	r.services = nil
+	//r.services = nil
 
 	if len(runningError.services) > 0 {
 		return runningError
@@ -143,6 +158,7 @@ func (r *Reporter) Wait() {
 	}
 	r.Unlock()
 	r.serviceProcess.Wait()
+	r.running = false
 }
 
 // trycatch try catch panic error
