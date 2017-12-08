@@ -17,6 +17,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/ysqi/gcodesharp/context"
@@ -34,7 +35,8 @@ func init() {
 }
 
 func main() {
-	if err := cmd.Execute(); err != nil {
+	log.SetFlags(log.Ltime)
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}

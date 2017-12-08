@@ -16,11 +16,9 @@
 package main
 
 import (
-	"fmt"
 	"go/build"
-	"io/ioutil"
+	"log"
 	"os"
-	"strings"
 
 	"github.com/ysqi/gcodesharp/context"
 	"github.com/ysqi/gcodesharp/gfmt"
@@ -31,8 +29,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// cmd represents the base command when called without any subcommands
-var cmd = &cobra.Command{
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
 	Use:   "gcodesharp",
 	Short: "A mini sharp tool for go code review",
 	Long: `GCodeSharp is a CLI library for Go language code review applications.
@@ -42,54 +40,66 @@ This application is a tool to generate the report to quickly review the golang c
 
 var (
 	junitpath string // enable save report to xml file
+
+	selectTool  []string
+	defaultTool = []string{"gtest", "gfmt", "glint"}
 )
 
 func init() {
-	cmd.PersistentFlags().StringVarP(&junitpath, "junit", "j", "", `save report as junit xml file`)
+	rootCmd.PersistentFlags().StringVarP(&junitpath, "junit", "j", "", `save report as junit xml file`)
+	rootCmd.PersistentFlags().StringArrayVarP(&selectTool, "tool", "t", defaultTool, `specify which tool to exec`)
+}
+
+func include(array []string, s string) bool {
+	for _, v := range array {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
 func run(c *cobra.Command, args []string) {
 	sCtx := initCtx(c, args...)
-
 	rp, err := reporter.New(sCtx)
 	if err != nil {
-		Failf(err.Error())
+		log.Fatalf(err.Error())
 	}
-	regGoFormatService(rp)
-	regGolintService(rp)
-	regGoTestService(rp)
 
+	if include(selectTool, "gfmt") {
+		regGoFormatService(rp)
+	}
+	if include(selectTool, "glint") {
+		regGolintService(rp)
+	}
+	if include(selectTool, "gtest") {
+		regGoTestService(rp)
+	}
+	if rp.RegisterNumber() == 0 {
+		log.Fatalf("does not contain a valid tool, stop running. all tool: %s", defaultTool)
+	}
 	err = rp.Start()
 	if err != nil {
-		Failf("start reporter:%s", err.Error())
+		log.Fatalf("start reporter:%s", err.Error())
 	}
 	rp.Wait()
 
-	if junitpath != "" {
-		err := saveTestReport(rp)
-		if err != nil {
-			Failf("create and save junit:%s", err.Error())
-		}
+	err = saveTestReport(rp)
+	if err != nil {
+		log.Fatalf("create and save junit:%s", err.Error())
 	}
-}
-
-func Errorf(formart string, args ...interface{}) {
-	if !strings.HasSuffix(formart, "\n") {
-		formart += "\n"
-	}
-	fmt.Printf(formart, args...)
-}
-func Failf(fmt_ string, args ...interface{}) {
-	Errorf(fmt_, args)
-	os.Exit(2)
 }
 
 func initCtx(c *cobra.Command, packages ...string) *reporter.ServiceContext {
+	if len(packages) == 0 {
+		log.Println("[WARN] No package path is set and will use current dir as package path")
+		packages = append(packages, ".")
+	}
 	added := map[string]struct{}{}
 	appendPkg := func(path string) {
 		p, err := build.Import(path, "", build.IgnoreVendor)
 		if err != nil {
-			Failf("initCtx:%s", err)
+			log.Fatalf("initCtx:%s", err)
 		}
 		// repeat clear
 		if _, ok := added[p.Dir]; !ok {
@@ -101,18 +111,17 @@ func initCtx(c *cobra.Command, packages ...string) *reporter.ServiceContext {
 		// find all package in dir by go list command.
 		list, err := context.GetPackagePaths(p)
 		if err != nil {
-			Failf("initCtx:%s", err)
+			log.Fatalf("initCtx:%s", err)
 		}
 		for _, p := range list {
 			appendPkg(p)
 		}
-
 	}
 
 	return &reporter.ServiceContext{
 		GlobalCxt: ctx,
 		Flagset:   c.Flags(),
-		ErrH:      Errorf,
+		ErrH:      log.Fatalf,
 	}
 }
 
@@ -133,22 +142,18 @@ func regGoTestService(rep *reporter.Reporter) {
 	})
 }
 
-func saveTestReport(report *reporter.Reporter) (err error) {
-	var f *os.File
-	f, err = ioutil.TempFile("", "gcodesharp_junit")
+func saveTestReport(report *reporter.Reporter) error {
+	if junitpath == "" {
+		log.Println("[WARN] No junit path is set and report will not be exported. please see -help.")
+		return nil
+	}
+
+	f, err := os.Create(junitpath)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err != nil && f != nil {
-			os.Remove(f.Name())
-		}
+		f.Close()
 	}()
-	defer f.Close()
-
-	err = report.OutputJunit(false, f)
-	if err == nil {
-		err = os.Rename(f.Name(), junitpath)
-	}
-	return
+	return report.OutputJunit(false, f)
 }

@@ -45,6 +45,10 @@ func New(ctx *ServiceContext) (*Reporter, error) {
 	return &r, nil
 }
 
+func (r *Reporter) RegisterNumber() int {
+	return len(r.serviceFuncs)
+}
+
 // Register is add a server constructor to reporter
 func (r *Reporter) Register(constructor ServiceConstructor) error {
 	if constructor == nil {

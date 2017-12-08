@@ -21,9 +21,21 @@ go get -u github.com/ysqi/gcodesharp
 
 # Get Help
 you need run application with args `-h`(-help) to get help.
+```text 
+Usage:
+  gcodesharp [flags]
+
+Flags:
+  -h, --help               help for gcodesharp
+  -j, --junit string       save report as junit xml file
+  -t, --tool stringArray   specify which tool to exec (default [gtest,gfmt,glint])
+```
 you can add issue to ask me.
+
+# Easy Start 
+run check for current and each child dictionary, and save reporter to junit.xml file.
 ```shell
-gcodesharp -h
+gcodesharp -j=junit.xml  ./...
 ```
 
 # Get Junit Report
